@@ -18,4 +18,5 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // });
 
-Route::post('/validate', 'IdentityController@checkIdentity');
+Route::post('/images/checkIdentity', 'ImagesController@checkIdentity');
+Route::post('/images/detectText', 'ImagesController@detectText');

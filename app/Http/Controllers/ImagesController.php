@@ -2,38 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImageRequest;
 use Google\Cloud\Vision\V1\ImageAnnotatorClient;
-use Illuminate\Http\Request;
 
-class IdentityController extends Controller
+class ImagesController extends Controller
 {
     protected $imageAnnotator;
 
-    private $fileName;
-
-    private $image;
-
-    public function __construct(Request $request)
+    public function __construct()
     {
-        $this->fileName = $request->image ?? 'storage/sample.jpg';
-        $this->image = file_get_contents($this->fileName);
-
         $this->imageAnnotator = new ImageAnnotatorClient(
             ['credentials' => config('google_key')]
         );
-
-        $this->checkIdentity();
-        $this->detect_text();
-        $this->detect_text_gcs();
-        $this->detect_document_text();
-        $this->detect_crop_hints();
-        $this->detect_face('storage/babsie.jpg');
-        $this->detect_image_property();
-        $this->detect_label();
-        $this->detect_landmark();
-        $this->detect_logo();
-        $this->detect_object();
-        $this->detect_safe_search();
     }
 
     public function __destruct()
@@ -41,9 +21,10 @@ class IdentityController extends Controller
         $this->imageAnnotator->close();
     }
 
-    public function checkIdentity()
+    public function checkIdentity(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->labelDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->labelDetection($image);
         $labels = $response->getLabelAnnotations();
 
         if ($labels) {
@@ -56,9 +37,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_text()
+    public function detectText(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->textDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->textDetection($image);
         $texts = $response->getTextAnnotations();
 
         printf('%d texts found:' . PHP_EOL, count($texts));
@@ -75,9 +57,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_text_gcs()
+    public function detect_text_gcs(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->textDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->textDetection($image);
         $texts = $response->getTextAnnotations();
 
         printf('%d texts found:' . PHP_EOL, count($texts));
@@ -98,9 +81,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_document_text()
+    public function detect_document_text(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->documentTextDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->documentTextDetection($image);
         $annotation = $response->getFullTextAnnotation();
 
         # print out detailed and structured information about document text
@@ -137,9 +121,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_crop_hints()
+    public function detect_crop_hints(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->cropHintsDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->cropHintsDetection($image);
         $annotations = $response->getCropHintsAnnotation();
 
         # print the crop hints from the annotation
@@ -160,9 +145,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_face($outFile = null)
+    public function detect_face(ImageRequest $request, $outFile = null)
     {
-        $response = $this->imageAnnotator->faceDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->faceDetection($image);
         $faces = $response->getFaceAnnotations();
 
         # names of likelihood from google.cloud.vision.enums
@@ -208,11 +194,14 @@ class IdentityController extends Controller
                 'jpeg' => 'imagejpeg',
             ];
 
-            copy($this->fileName, $outFile);
-            $ext = strtolower(pathinfo($this->fileName, PATHINFO_EXTENSION));
+            copy($request->image->getFilename(), $outFile);
+
+            $ext = strtolower(pathinfo($request->image->getFileExtension(), PATHINFO_EXTENSION));
+
             if (! array_key_exists($ext, $imageCreateFunc)) {
                 throw new \Exception('Unsupported image extension');
             }
+
             $outputImage = call_user_func($imageCreateFunc[$ext], $outFile);
 
             foreach ($faces as $face) {
@@ -231,10 +220,9 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_image_property()
+    public function detect_image_property(ImageRequest $request)
     {
-        # annotate the image
-        $image = file_get_contents($this->fileName);
+        $image = file_get_contents($request->image);
         $response = $this->imageAnnotator->imagePropertiesDetection($image);
         $props = $response->getImagePropertiesAnnotation();
 
@@ -249,9 +237,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_label()
+    public function detect_label(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->labelDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->labelDetection($image);
         $labels = $response->getLabelAnnotations();
 
         if ($labels) {
@@ -264,9 +253,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_landmark()
+    public function detect_landmark(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->landmarkDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->landmarkDetection($image);
         $landmarks = $response->getLandmarkAnnotations();
 
         printf('%d landmark found:' . PHP_EOL, count($landmarks));
@@ -275,9 +265,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_logo()
+    public function detect_logo(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->logoDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->logoDetection($image);
         $logos = $response->getLogoAnnotations();
 
         printf('%d logos found:' . PHP_EOL, count($logos));
@@ -286,9 +277,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_object()
+    public function detect_object(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->objectLocalization($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->objectLocalization($image);
         $objects = $response->getLocalizedObjectAnnotations();
 
         foreach ($objects as $object) {
@@ -305,9 +297,10 @@ class IdentityController extends Controller
         }
     }
 
-    public function detect_safe_search()
+    public function detect_safe_search(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->safeSearchDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->safeSearchDetection($image);
         $safe = $response->getSafeSearchAnnotation();
 
         $adult = $safe->getAdult();
@@ -328,9 +321,10 @@ class IdentityController extends Controller
         printf('Racy: %s' . PHP_EOL, $likelihoodName[$racy]);
     }
 
-    public function detect_web()
+    public function detect_web(ImageRequest $request)
     {
-        $response = $this->imageAnnotator->webDetection($this->image);
+        $image = file_get_contents($request->image);
+        $response = $this->imageAnnotator->webDetection($image);
         $web = $response->getWebDetection();
 
         // Print best guess labels
