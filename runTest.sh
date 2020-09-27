@@ -6,7 +6,6 @@ composer dump-autoload &&
 
 php artisan config:clear &&
 php artisan route:clear &&
-# php artisan optimize:clear && Dont clear cache as Oauth tokens needed for Xero are stored there
 
 git pull &&
 git merge origin/master &&
